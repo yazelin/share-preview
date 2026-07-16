@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>分享卡預覽器|FB、LINE、X、Google 分享長相一次看</title>
+<meta name="description" content="貼上網址,同時預覽連結在 FB、LINE、X、Google 上的分享卡長相;欄位可微調、預覽即時更新、一鍵複製修好的 meta 標籤。免費、免註冊。">
+<link rel="canonical" href="https://yazelin.github.io/share-preview/">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="分享卡預覽器">
+<meta property="og:title" content="分享卡預覽器|FB、LINE、X、Google 分享長相一次看">
+<meta property="og:description" content="發文前先看分享卡會長怎樣——含台灣人最在乎的 LINE 預覽。改欄位即時更新,一鍵複製 meta 標籤。">
+<meta property="og:url" content="https://yazelin.github.io/share-preview/">
+<meta property="og:image" content="https://yazelin.github.io/share-preview/assets/og.png">
+<meta property="og:image:secure_url" content="https://yazelin.github.io/share-preview/assets/og.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_TW">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --text: #1c2028; --muted: #5c6470;
+  --line: #dde1e7; --accent: #c77800; --accent-ink: #ffffff; --ok: #2f9e6e; --bad: #c9563a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161c; --panel: #1c1f27; --text: #eceef2; --muted: #9aa1ad;
+    --line: #2b2f3a; --accent: #f5a524; --accent-ink: #14161c; --ok: #3dbd8a; --bad: #e07a5f;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  line-height: 1.6;
+}
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+header.site { padding: 36px 0 4px; text-align: center; }
+header.site h1 { margin: 0; font-size: 1.9rem; letter-spacing: .05em; }
+header.site .tagline { color: var(--muted); margin: 8px 0 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin: 16px 0; }
+.bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+input[type=url], input[type=text] {
+  flex: 1; min-width: 220px; padding: 10px 12px; font-size: 1rem; color: var(--text);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+}
+input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn {
+  padding: 9px 20px; border-radius: 10px; border: 0; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink); font-size: 1rem; font-family: inherit;
+}
+.btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
+#status { font-size: .88rem; color: var(--muted); }
+#status.err { color: var(--bad); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+.pv h3 { font-size: .92rem; margin: 0 0 8px; color: var(--muted); font-weight: 500; }
+.pv h3 span { font-size: .78rem; }
+/* 平台卡固定亮色(模擬平台原生外觀) */
+.card-shell { border-radius: 10px; overflow: hidden; }
+.imgbox { width: 100%; aspect-ratio: 1.91 / 1; background: #e4e6eb; display: block; overflow: hidden; }
+.imgbox img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.imgbox .noimg { display: flex; align-items: center; justify-content: center; height: 100%; color: #90949c; font-size: .9rem; }
+.fb { border: 1px solid #dadde1; background: #f0f2f5; font-family: Helvetica, Arial, sans-serif; }
+.fb .txt { padding: 10px 12px; }
+.fb .dom { color: #606770; font-size: .78rem; text-transform: uppercase; }
+.fb .ti { color: #1d2129; font-weight: 600; font-size: 1rem; line-height: 1.3; margin-top: 3px; }
+.fb .de { color: #606770; font-size: .88rem; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.linewrap { background: #7d97bc; padding: 18px; border-radius: 10px; }
+.line-card { background: #fff; border-radius: 14px; max-width: 320px; overflow: hidden; }
+.line-card .txt { padding: 10px 12px; }
+.line-card .ti { color: #111; font-weight: 600; font-size: .95rem; line-height: 1.35; }
+.line-card .de { color: #8a8f98; font-size: .82rem; margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.line-card .dom { color: #b0b4bb; font-size: .76rem; margin-top: 6px; }
+.x { border: 1px solid #cfd9de; background: #fff; border-radius: 16px; overflow: hidden; }
+.x .txt { padding: 10px 12px; }
+.x .dom { color: #536471; font-size: .82rem; }
+.x .ti { color: #0f1419; font-size: .95rem; font-weight: 600; margin-top: 2px; }
+.x .de { color: #536471; font-size: .88rem; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.x.small { display: flex; }
+.x.small .imgbox { width: 130px; min-width: 130px; aspect-ratio: 1 / 1; }
+.g { background: #fff; border: 1px solid #dadce0; border-radius: 10px; padding: 14px 16px; font-family: Arial, sans-serif; }
+.g .top { display: flex; align-items: center; gap: 8px; }
+.g .fav { width: 26px; height: 26px; border-radius: 50%; background: #f1f3f4; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #5f6368; }
+.g .site { color: #202124; font-size: .85rem; }
+.g .u { color: #4d5156; font-size: .78rem; }
+.g .ti { color: #1a0dab; font-size: 1.15rem; margin-top: 6px; line-height: 1.3; }
+.g .de { color: #4d5156; font-size: .88rem; margin-top: 4px; }
+.warnline { color: var(--bad); font-size: .8rem; margin-top: 6px; }
+label.f { display: block; font-size: .88rem; color: var(--muted); margin: 10px 0 4px; }
+ul.checks { list-style: none; padding: 0; margin: 8px 0 0; font-size: .9rem; }
+ul.checks li { padding: 3px 0; }
+.okc { color: var(--ok); }
+.badc { color: var(--bad); }
+pre {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px; overflow-x: auto; font-size: .82rem; line-height: 1.5;
+}
+.note { color: var(--muted); font-size: .85rem; }
+h2 { font-size: 1.05rem; margin: 2px 0 8px; }
+footer.site {
+  border-top: 1px solid var(--line); padding: 26px 0 40px; text-align: center;
+  color: var(--muted); font-size: .9rem; margin-top: 28px;
+}
+footer.site nav { display: flex; justify-content: center; gap: 20px; margin: 10px 0; flex-wrap: wrap; }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header class="site wrap">
+  <h1>分享卡預覽器</h1>
+  <p class="tagline">發文前先看:你的連結在 FB、LINE、X、Google 上長什麼樣。改欄位即時更新,複製修好的 meta 標籤。</p>
+</header>
+
+<main class="wrap">
+  <section class="panel">
+    <div class="bar">
+      <input id="url" type="url" placeholder="https://你的活動頁網址">
+      <button class="btn" id="go">抓取預覽</button>
+      <span id="status"></span>
+    </div>
+  </section>
+
+  <section class="grid" id="previews" hidden>
+    <div class="pv">
+      <h3>Facebook <span>(示意)</span></h3>
+      <div class="card-shell fb">
+        <a class="imgbox" id="img-fb"></a>
+        <div class="txt"><div class="dom" id="dom-fb"></div><div class="ti" id="ti-fb"></div><div class="de" id="de-fb"></div></div>
+      </div>
+    </div>
+    <div class="pv">
+      <h3>LINE <span>(示意)</span></h3>
+      <div class="linewrap"><div class="line-card">
+        <span class="imgbox" id="img-line"></span>
+        <div class="txt"><div class="ti" id="ti-line"></div><div class="de" id="de-line"></div><div class="dom" id="dom-line"></div></div>
+      </div></div>
+    </div>
+    <div class="pv">
+      <h3>X(Twitter) <span>(示意)</span></h3>
+      <div class="x" id="x-card">
+        <span class="imgbox" id="img-x"></span>
+        <div class="txt"><div class="dom" id="dom-x"></div><div class="ti" id="ti-x"></div><div class="de" id="de-x"></div></div>
+      </div>
+      <p class="warnline" id="x-warn" hidden>沒有 twitter:card 或值為 summary,X 上會顯示小卡(或無卡)。</p>
+    </div>
+    <div class="pv">
+      <h3>Google 搜尋 <span>(示意)</span></h3>
+      <div class="g">
+        <div class="top"><div class="fav" id="fav-g"></div><div><div class="site" id="site-g"></div><div class="u" id="u-g"></div></div></div>
+        <div class="ti" id="ti-g"></div>
+        <div class="de" id="de-g"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="editor" hidden>
+    <h2>檢查與微調<span class="note">(改了下面欄位,上面預覽即時更新)</span></h2>
+    <ul class="checks" id="checks"></ul>
+    <label class="f" for="e-title">標題(og:title)</label>
+    <input id="e-title" type="text">
+    <label class="f" for="e-desc">描述(og:description)</label>
+    <input id="e-desc" type="text">
+    <label class="f" for="e-image">分享圖網址(og:image,建議 1200×630)</label>
+    <input id="e-image" type="url">
+    <details style="margin-top:14px">
+      <summary>產生 meta 標籤(貼進你網頁的 head)</summary>
+      <pre id="code"></pre>
+      <button class="btn ghost" id="copycode">複製標籤</button>
+    </details>
+    <p class="note" style="margin-top:12px">要連 SEO、CTA、速度、追蹤一起體檢,用 <a href="https://yazelin.github.io/marketing-page-checker/">行銷頁健檢器</a>。</p>
+  </section>
+</main>
+
+<footer class="site wrap">
+  <p>免費、免註冊——抓取經由開源的行銷頁健檢器 Worker,不儲存你的網址。</p>
+  <p>更多免費行銷小工具:<a href="https://yazelin.github.io/marketing-toolbox/">行銷工具箱</a></p>
+  <nav>
+    <a href="https://github.com/yazelin/share-preview">GitHub</a>
+    <a href="https://www.facebook.com/yaze.lin.gm">Facebook</a>
+    <a href="https://buymeacoffee.com/yazelin">Buy Me a Coffee</a>
+  </nav>
+  <p>MIT License © 2026 林亞澤</p>
+</footer>
+
+<noscript><p class="wrap" style="text-align:center">本工具需要啟用 JavaScript。</p></noscript>
+
+<script>
+const WORKER = 'https://marketing-page-checker.yazelinj303.workers.dev/';
+const $ = (id) => document.getElementById(id);
+const S = { url: '', domain: '', title: '', desc: '', image: '', twitterCard: '', canonical: '', hasFavicon: false, imgW: 0, imgH: 0 };
+
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function setImg(boxId, src) {
+  const box = $(boxId);
+  box.replaceChildren();
+  if (!src) { box.append(el('div', 'noimg', '沒有 og:image')); return; }
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = '';
+  img.onerror = () => { box.replaceChildren(el('div', 'noimg', '圖片載入失敗')); };
+  if (boxId === 'img-fb') {
+    img.onload = () => { S.imgW = img.naturalWidth; S.imgH = img.naturalHeight; renderChecks(); };
+  }
+  box.append(img);
+}
+
+function renderPreviews() {
+  const t = S.title || '(沒有標題)';
+  const d = S.desc || '';
+  ['fb', 'line', 'x'].forEach((p) => { setImg('img-' + p, S.image); });
+  $('dom-fb').textContent = S.domain;
+  $('ti-fb').textContent = t;
+  $('de-fb').textContent = d;
+  $('ti-line').textContent = t;
+  $('de-line').textContent = d;
+  $('dom-line').textContent = S.domain;
+  $('dom-x').textContent = S.domain;
+  $('ti-x').textContent = t;
+  $('de-x').textContent = d;
+  const small = !S.twitterCard || S.twitterCard === 'summary';
+  $('x-card').classList.toggle('small', small);
+  $('x-warn').hidden = !small;
+  $('fav-g').textContent = S.hasFavicon ? '✓' : '?';
+  $('site-g').textContent = S.domain;
+  $('u-g').textContent = S.url;
+  $('ti-g').textContent = t;
+  $('de-g').textContent = d;
+  renderChecks();
+  renderCode();
+}
+
+function check(ok, okText, badText) {
+  const li = el('li', ok ? 'okc' : 'badc', (ok ? '✓ ' : '✕ ') + (ok ? okText : badText));
+  return li;
+}
+
+function renderChecks() {
+  const ul = $('checks');
+  ul.replaceChildren(
+    check(!!S.title, 'og:title / 標題:有', 'og:title:沒有——分享出去只剩網址'),
+    check(!!S.desc, 'og:description / 描述:有', 'og:description:沒有——卡片會少一行說明'),
+    check(!!S.image, 'og:image:有', 'og:image:沒有——分享卡會破圖或無圖'),
+    check(!!S.twitterCard, 'twitter:card:' + S.twitterCard, 'twitter:card:沒有——X 上不會出大圖卡'),
+    check(!!S.canonical, 'canonical:有', 'canonical:沒有(建議加)'),
+    check(S.hasFavicon, 'favicon:有', 'favicon:沒有'),
+  );
+  if (S.image && S.imgW) {
+    const ratio = S.imgW / S.imgH;
+    const good = S.imgW >= 600 && ratio > 1.7 && ratio < 2.1;
+    ul.append(check(good,
+      'og:image 尺寸:' + S.imgW + '×' + S.imgH + '(比例 OK)',
+      'og:image 尺寸:' + S.imgW + '×' + S.imgH + '——建議 1200×630(1.91:1),太小或比例不對會被裁切'));
+  }
+}
+
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+function renderCode() {
+  const lines = [
+    '<meta property="og:title" content="' + esc(S.title) + '">',
+    '<meta property="og:description" content="' + esc(S.desc) + '">',
+    '<meta property="og:image" content="' + esc(S.image) + '">',
+  ];
+  if (S.imgW) {
+    lines.push('<meta property="og:image:width" content="' + S.imgW + '">');
+    lines.push('<meta property="og:image:height" content="' + S.imgH + '">');
+  }
+  lines.push('<meta property="og:url" content="' + esc(S.url) + '">');
+  lines.push('<meta property="og:type" content="website">');
+  lines.push('<meta name="twitter:card" content="summary_large_image">');
+  $('code').textContent = lines.join('\n');
+}
+
+async function fetchMeta() {
+  const target = $('url').value.trim();
+  if (!target) { $('status').textContent = '先貼網址。'; return; }
+  $('status').className = '';
+  $('status').textContent = '抓取中…';
+  $('go').disabled = true;
+  try {
+    const r = await fetch(WORKER + '?raw=1&url=' + encodeURIComponent(target));
+    const j = await r.json();
+    if (j.error) throw new Error(j.error);
+    S.url = j.url;
+    S.domain = new URL(j.url).hostname;
+    S.title = j.meta.og.title || j.meta.title || '';
+    S.desc = j.meta.og.description || j.meta.description || '';
+    S.image = j.meta.og.image || '';
+    S.twitterCard = j.meta.twitterCard || '';
+    S.canonical = j.meta.canonical || '';
+    S.hasFavicon = !!j.meta.hasFavicon;
+    S.imgW = 0; S.imgH = 0;
+    $('e-title').value = S.title;
+    $('e-desc').value = S.desc;
+    $('e-image').value = S.image;
+    $('previews').hidden = false;
+    $('editor').hidden = false;
+    renderPreviews();
+    $('status').textContent = '完成。';
+    const q = new URL(location.href);
+    q.searchParams.set('url', target);
+    history.replaceState(null, '', q);
+  } catch (e) {
+    $('status').className = 'err';
+    $('status').textContent = e.message;
+  }
+  $('go').disabled = false;
+}
+
+$('go').addEventListener('click', fetchMeta);
+$('url').addEventListener('keydown', (e) => { if (e.key === 'Enter') fetchMeta(); });
+$('e-title').addEventListener('input', () => { S.title = $('e-title').value; renderPreviews(); });
+$('e-desc').addEventListener('input', () => { S.desc = $('e-desc').value; renderPreviews(); });
+$('e-image').addEventListener('input', () => { S.image = $('e-image').value.trim(); S.imgW = 0; S.imgH = 0; renderPreviews(); });
+$('copycode').addEventListener('click', async () => {
+  await navigator.clipboard.writeText($('code').textContent);
+  $('copycode').textContent = '已複製';
+  setTimeout(() => { $('copycode').textContent = '複製標籤'; }, 1500);
+});
+
+const initUrl = new URLSearchParams(location.search).get('url');
+if (initUrl) { $('url').value = initUrl; fetchMeta(); }
+</script>
+</body>
+</html>
